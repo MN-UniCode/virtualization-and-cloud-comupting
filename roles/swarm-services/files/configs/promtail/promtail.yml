@@ -1,0 +1,32 @@
+server:
+  http_listen_port: 9080
+
+positions:
+  filename: /tmp/positions.yaml
+
+client:
+  url: http://loki:3100/api/prom/push
+
+scrape_configs:
+  - job_name: docker_containers
+    pipeline_stages:
+      - docker: {}
+      - labeldrop:
+          - container_label_maintainer
+          - container_label_org_opencontainers_image_authors
+          - container_label_org_opencontainers_image_title
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      # TASK 64. Ensure that logs can be attributed to a specific node and/or service
+      # grab the container name
+      - source_labels: [ '__meta_docker_container_name' ]
+        regex: "/([^\\.]+)\\.([^.]{1,3}).*"
+        replacement: "$1.$2"
+        target_label: container_name
+        action: replace
+      # grab the existing container labels
+      - regex: __meta_docker_container_label_(.+)
+        replacement: container_label_$1
+        action: labelmap

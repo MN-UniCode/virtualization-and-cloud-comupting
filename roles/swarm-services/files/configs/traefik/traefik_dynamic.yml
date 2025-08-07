@@ -1,0 +1,4 @@
+tls:
+  certificates:
+    - certFile: "/etc/ssl/certs/vcc.internal.crt"
+      keyFile: "/etc/ssl/private/vcc.internal.key"

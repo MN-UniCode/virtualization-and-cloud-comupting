@@ -1,0 +1,71 @@
+- name: Ensure folders exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+  loop:
+    - "/data/ssl/private"
+    - "/data/ssl/certs"
+
+#
+# Generate a private CA
+#
+- name: Create private key with password protection
+  community.crypto.openssl_privatekey:
+    path: /data/ssl/private/ca.key
+    passphrase: "{{ ca_pass }}"
+    cipher: auto
+    size: 4096
+
+- name: Create certificate signing request (CSR) for CA certificate
+  community.crypto.openssl_csr:
+    path: /data/ssl/private/ca.csr
+    privatekey_path: /data/ssl/private/ca.key
+    privatekey_passphrase: "{{ ca_pass }}"
+    common_name: VCC Internal CA
+    use_common_name_for_san: false
+    basic_constraints:
+      - 'CA:TRUE'
+    basic_constraints_critical: true
+    key_usage:
+      - keyCertSign
+    key_usage_critical: true
+  register: ca_csr
+
+- name: Create self-signed CA certificate from CSR
+  community.crypto.x509_certificate:
+    path: /data/ssl/private/ca.pem
+    csr_path: /data/ssl/private/ca.csr
+    privatekey_path: /data/ssl/private/ca.key
+    privatekey_passphrase: "{{ ca_pass }}"
+    provider: selfsigned
+
+#
+# Generate and sign SSL certificate
+#
+- name: Generate private key # without passphrase
+  community.crypto.openssl_privatekey:
+    path: /data/ssl/private/{{ domain_name }}.key
+    size: 4096
+
+# TASK 17. Ensure that its Subject Alternate Name contains the DNS name "*.vcc.internal"
+- name: Create CSR (Certificate Signing Request)
+  community.crypto.openssl_csr:
+    path: "/data/ssl/certs/{{ domain_name }}.csr"
+    privatekey_path: "/data/ssl/private/{{ domain_name }}.key"
+    common_name: "{{ domain_name }}"
+    subject_alt_name:
+      - "DNS:*.{{ domain_name }}"
+
+# TASK 16. Create a TLS certificate for traefik
+- name: Sign SSL certificate with CA
+  community.crypto.x509_certificate:
+    path: "/data/ssl/certs/{{ domain_name }}.crt"
+    csr_path: "/data/ssl/certs/{{ domain_name }}.csr"
+    provider: ownca
+    ownca_path: "/data/ssl/private/ca.pem"
+    ownca_privatekey_path: "/data/ssl/private/ca.key"
+    ownca_privatekey_passphrase: "{{ ca_pass }}"
+    ownca_digest: sha256

@@ -1,0 +1,45 @@
+networks:
+  loki_net:
+
+services:
+
+  loki:
+    # TASK 48. Deploy docker.io/grafana/loki:3.3.1
+    image: docker.io/grafana/loki:3.3.1
+    command:
+      - -config.file=/etc/loki/local-config.yaml
+    networks:
+      prometheus_net:
+      loki_net:
+    volumes:
+      # TASK 49. Ensure that loki data is persistent
+      - /data/loki:/loki
+      - /data/configs/loki/loki.yml:/etc/loki/local-config.yaml:ro
+    deploy:
+      replicas: 1
+      labels:
+        # TASK 61. Ensure that prometheus scrapes loki
+        - prometheus.io/scrape-me=yes-please
+        - prometheus.io/metrics-path=/metrics
+        - prometheus.io/metrics-port=3100
+
+  promtail:
+    # TASK 51. Deploy docker.io/grafana/promtail:3.2.2
+    image: docker.io/grafana/promtail:3.2.2
+    command:
+      - -config.file=/etc/promtail/config.yml
+    networks:
+      prometheus_net:
+      loki_net:
+    volumes:
+      - /data/configs/promtail/promtail.yml:/etc/promtail/config.yml:ro
+      - /var/log:/var/log:ro
+      # TASK 52. Make it so it gathers log from your services
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      mode: global
+      labels:
+        # TASK 62. Ensure that prometheus scrapes promtail
+        - prometheus.io/scrape-me=yes-please
+        - prometheus.io/metrics-path=/metrics
+        - prometheus.io/metrics-port=9080

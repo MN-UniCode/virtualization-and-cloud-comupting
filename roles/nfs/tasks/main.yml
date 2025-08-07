@@ -1,0 +1,43 @@
+---
+- name: "Create NFS share directory"
+  ansible.builtin.file:
+    path: "{{ nfs_dir }}"
+    state: directory
+
+# server
+- block:
+    # TASK 6a. Install NFS Client and Server
+    - name: Install NFS server
+      ansible.builtin.apt:
+        name: nfs-kernel-server
+    # TASK 7. Configure NFS to export /data to the other nodes
+    - name: Configure exports
+      ansible.builtin.template:
+        src: exports
+        dest: /etc/exports
+      notify: Restart NFS server
+    # TASK 8a. Ensure that the server is running at boot
+    - name: Start NFS server
+      ansible.builtin.systemd:
+        name: nfs-kernel-server.service
+        state: started
+        enabled: true
+    # TASK 8c. The playbook does not require a reboot to utilize the share
+    - meta: flush_handlers
+  when: inventory_hostname == ansible_play_hosts_all[0]
+
+# client
+- block:
+    # TASK 6b. Install NFS Client and Server
+    - name: Install NFS client
+      ansible.builtin.apt:
+        name: nfs-common
+    # TASK 8b. The client is mounting the share at boot
+    - name: Mount NFS share
+      ansible.posix.mount:
+        src: "{{ hostvars[ansible_play_hosts_all[0]]['ansible_default_ipv4']['address'] }}:{{ nfs_dir }}"
+        path: "{{ nfs_dir }}"
+        opts: rw
+        state: mounted
+        fstype: nfs
+  when: inventory_hostname != ansible_play_hosts_all[0]

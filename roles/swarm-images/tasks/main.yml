@@ -1,0 +1,35 @@
+---
+- name: Create /opt/container-images
+  ansible.builtin.file:
+    path: /opt/container-images
+    state: directory
+
+- name: Copy container images
+  ansible.posix.synchronize:
+    src: "{{ role_path }}/files/images/" # my local path
+    dest: "/opt/container-images/"
+    archive: true
+    delete: true
+
+- name: Build container images
+  community.docker.docker_image_build:
+    name: "registry.vcc.internal:5000/{{ item }}"
+    tag: latest
+    path: "/opt/container-images/{{ item }}"
+  loop: "{{ swarm_build_images }}"
+  # retry the task that may fail
+  retries: 3
+  delay: 1
+  register: result
+  until: result is not failed
+
+- name: Push container images
+  community.docker.docker_image_push:
+    name: "registry.vcc.internal:5000/{{ item }}"
+    tag: latest
+  loop: "{{ swarm_build_images }}"
+  # retry the task that may fail
+  retries: 3
+  delay: 1
+  register: result
+  until: result is not failed

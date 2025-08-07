@@ -1,0 +1,63 @@
+networks:
+  prometheus_net:
+
+services:
+
+  prometheus:
+    # TASK 43. Deploy quay.io/prometheus/prometheus:v3.0.1
+    image: quay.io/prometheus/prometheus:v3.0.1
+    user: root
+    command:
+      - --web.listen-address=0.0.0.0:9090
+      - --web.external-url=https://prom.vcc.internal
+      # TASK 45. Set 14 days as the metrics retention period
+      - --storage.tsdb.retention.time=14d
+    networks:
+      prometheus_net:
+      traefik_net:
+        aliases:
+          - prom.vcc.internal
+    volumes:
+      # TASK 44. Ensure that Prometheus data is persisted
+      - /data/prometheus:/prometheus/data
+      - /data/configs/prometheus/prometheus.yml:/prometheus/prometheus.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        # TASK 46. Expose prometheus via traefik on https://prom.vcc.internal
+        - "traefik.enable=true"
+        - "traefik.docker.network=vcc_traefik_net"
+        - "traefik.http.routers.prometheus.rule=Host(`prom.vcc.internal`)"
+        - "traefik.http.routers.prometheus.service=prometheus"
+        - "traefik.http.routers.prometheus.entrypoints=web,websecure"
+        - "traefik.http.routers.prometheus.tls=true"
+        - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+
+  prometheus_node_exporter:
+    # TASK 47. Deploy quay.io/prometheus/node-exporter:v1.8.2
+    image: quay.io/prometheus/node-exporter:v1.8.2
+    hostname: "{% raw %}{{.Node.Hostname}}{% endraw %}"
+    command:
+      - --path.rootfs=/host
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --collector.processes
+    networks:
+      prometheus_net:
+    volumes:
+      # It loads the entire filesystem of the hosts inside of a sub-path in the container
+      # proc/ a virtual file system that is created dynamically by Linux to provide access to certain types of hardware information and information about the running processes
+      - /:/host:ro,rslave
+      - /proc:/host/proc:ro,rslave
+      - /sys:/host/sys:ro,rslave
+    deploy:
+      endpoint_mode: dnsrr # it does not make ANY sense to have a service where we care about individual instances behind a VIP
+      mode: global
+      labels:
+        # TASK 54. Ensure that prometheus scrapes node-exporter
+        - prometheus.io/scrape-me=yes-please
+        - prometheus.io/metrics-path=/metrics
+        - prometheus.io/metrics-port=9100

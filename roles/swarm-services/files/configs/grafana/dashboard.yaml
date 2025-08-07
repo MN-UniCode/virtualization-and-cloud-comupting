@@ -1,0 +1,19 @@
+apiVersion: 1
+providers:
+  - name: 'Monitoring Stack'
+    folder: 'Monitoring'
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards/monitoring
+
+  - name: 'Logging Stack'
+    folder: 'Logging'
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards/logging
+
+  - name: 'Traefik'
+    folder: 'Traefik'
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards/traefik

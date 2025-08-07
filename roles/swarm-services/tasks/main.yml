@@ -1,0 +1,71 @@
+---
+- name: Copy docker-compose files to remote host
+  ansible.builtin.template:
+    src: "{{ item }}"
+    dest: "/opt/{{ item }}"
+  loop: "{{ stack_file_names }}"
+
+- name: Undeploy stack
+  community.docker.docker_stack:
+    state: absent
+    name: vcc
+    detach: false
+  when: stack_recreate
+
+- name: Install rsync
+  ansible.builtin.apt:
+    name:
+      - rsync
+
+- name: Delete directories in /data
+  ansible.builtin.file:
+    path: "/data/{{ item }}"
+    state: absent
+  loop: "{{ stack_data_directories }}"
+  when: stack_nuke_data_directories
+
+- name: Create directories in /data
+  ansible.builtin.file:
+    path: "/data/{{ item }}"
+    state: directory
+  loop: "{{ stack_data_directories }}"
+
+- name: Create /data/configs
+  ansible.builtin.file:
+    path: /data/configs
+    state: directory
+
+- name: Copy configs
+  ansible.posix.synchronize:
+    src: "{{ role_path }}/files/configs/"
+    dest: "/data/configs/"
+    archive: true
+    delete: true
+
+# Not so good, but it allows us to create ini forgejo ini file without expose password and break the directory structure
+- name: Generate ini files from jinja 2 templates
+  template:
+    src: "{{ role_path }}/files/configs/forgejo/forgejo.j2"
+    dest: "/data/configs/forgejo/forgejo.ini"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Delete jinja 2 templates from the remote machine
+  ansible.builtin.file:
+    path: "/data/configs/forgejo/forgejo.j2"
+    state: absent
+
+- name: Deploy stack from a compose file
+  community.docker.docker_stack:
+    state: present
+    name: vcc
+    prune: true
+    detach: false
+    with_registry_auth: true
+    compose: "{{ ['/opt/'] | product(stack_file_names) | map('join') | list }}" # this is evil
+  # retry the task that may fail
+  retries: 3
+  delay: 1
+  register: result
+  until: result is not failed

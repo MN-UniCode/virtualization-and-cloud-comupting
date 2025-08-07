@@ -1,0 +1,22 @@
+networks:
+  host:
+    external: true # host network already exists and we don't need to create it
+
+services:
+  docker_registry:
+    image: ghcr.io/distribution/distribution:3.0.0-rc.1
+    networks:
+      host: # use the network from the host
+    deploy:
+      mode: global
+    environment:
+      # TASK 11. Configure the registry to expose metrics
+      # (They already expose metrics on port 5001 by default)
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /var/lib/registry
+      REGISTRY_AUTH_HTPASSWD_REALM: Container registry
+      REGISTRY_AUTH_HTPASSWD_PATH: /etc/registry/htpasswd
+      REGISTRY_HTTP_ADDR: ':5000'
+      REGISTRY_HTTP_SECRET: "{{ lookup('ansible.builtin.password', 'credentials/container-registry-http-secret', length=32) }}"
+    volumes:
+      - /data/registry/config/auth:/etc/registry/htpasswd:ro
+      - /data/registry/data:/var/lib/registry

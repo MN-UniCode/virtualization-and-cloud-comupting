@@ -1,0 +1,14 @@
+---
+# TASK 10. Configure the registry to require authentication using the htpasswd file
+- name: Login to docker registry
+  community.docker.docker_login:
+    registry_url: registry.vcc.internal:5000
+    username: user
+    password: "{{ lookup('ansible.builtin.password', 'credentials/container-registry-password', length=32) }}"
+    reauthorize: true
+  # retry the task that may fail
+  retries: 60
+  delay: 1
+  register: result
+  # TASK 12. Ensure that both nodes are logged in to the registry (all the nodes)
+  until: result is not failed

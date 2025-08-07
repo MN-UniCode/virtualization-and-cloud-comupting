@@ -1,0 +1,8 @@
+# Config template
+# Rename this file in config.yml
+key_file_path: "path/to/your/keyfile"
+key_file_path_ubuntu: "path/to/your/ubuntu/keyfile"
+mynet: "192.168.88"
+num_target: 2
+provider: "your_provider"
+os: "0_for_windows, 1_for_mac"

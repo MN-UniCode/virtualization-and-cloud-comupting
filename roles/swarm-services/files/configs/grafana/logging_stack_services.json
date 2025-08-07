@@ -1,0 +1,386 @@
+{
+  "id": null,
+  "uid": "service-logs-dashboard",
+  "title": "Services Logs Dashboard",
+  "tags": ["logs"],
+  "timezone": "browser",
+  "schemaVersion": 16,
+  "version": 0,
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "type": "query",
+        "datasource": "Loki",
+        "query": "label_values(container_label_com_docker_swarm_service_name)",
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "selected": true,
+          "text": "Select a service",
+          "value": ""
+        }
+      },
+      {
+        "name": "log_filter",
+        "type": "textbox",
+        "label": "Log search",
+        "query": "",
+        "hide": 0
+      }  
+    ]
+  },
+"panels": [
+    {
+      "type": "logs",
+      "title": "$service Logs Stream",
+      "targets": [
+        {
+          "datasource": "Loki",
+          "expr": "{container_label_com_docker_swarm_service_name=\"$service\"} |= \"$log_filter\""
+        }
+      ],
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 8 },
+      "options": {
+        "showLabels": true,
+        "showTime": true,
+        "enableLogDetails": true
+      },
+      "refresh": true
+    },
+    {
+      "type": "timeseries",
+      "title": "$service Logs Over Time",
+      "targets": [
+        {
+          "datasource": "Loki",
+          "expr": "sum(count_over_time({container_label_com_docker_swarm_service_name=\"$service\"} | json [6h])) by (detected_level)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{detected_level=\"error\"}"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "dark-red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{detected_level=\"debug\"}"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{detected_level=\"unknown\"}"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#c2c2c2",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{detected_level=\"info\"}"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{detected_level=\"warn\"}"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "x": 8, "y": 0, "w": 16, "h": 8 },
+      "options": {
+        "legend": {
+          "displayMode": "table"
+        },
+        "onClick": {
+          "variable": "log_level"
+        }
+      }
+    },
+    {
+      "type": "piechart",
+      "title": "$service Logs Breakdown",
+      "targets": [
+        {
+          "datasource": "Loki",
+          "expr": "sum(count_over_time({container_label_com_docker_swarm_service_name=\"$service\"} [6h])) by (detected_level)"
+        }
+      ],
+      "gridPos": { "x": 0, "y": 8, "w": 8, "h": 8 },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{detected_level=\"error\"}"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "dark-red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{detected_level=\"debug\"}"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{detected_level=\"unknown\"}"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#c2c2c2",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{detected_level=\"info\"}"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{detected_level=\"warn\"}"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "pieType": "donut",
+        "legendPlacement": "bottom",
+        "legendDisplayMode": "table"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Error Logs Count",
+      "targets": [
+        {
+          "datasource": "Loki",
+          "expr": "sum(count_over_time({container_label_com_docker_swarm_service_name=\"$service\"} | json | detected_level=\"error\" [1h]))"
+        }
+      ],
+      "gridPos": { "x": 0, "y": 8, "w": 4, "h": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "red"
+          }
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Warning Logs Count",
+      "targets": [
+        {
+          "datasource": "Loki",
+          "expr": "sum(count_over_time({container_label_com_docker_swarm_service_name=\"$service\"} | json | detected_level=\"warn\" [1h]))"
+        }
+      ],
+      "gridPos": { "x": 4, "y": 8, "w": 4, "h": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          }
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Info Logs Count",
+      "targets": [
+        {
+          "datasource": "Loki",
+          "expr": "sum(count_over_time({container_label_com_docker_swarm_service_name=\"$service\"} | json | detected_level=\"info\" [1h]))"
+        }
+      ],
+      "gridPos": { "x": 8, "y": 8, "w": 4, "h": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Debug Logs Count",
+      "targets": [
+        {
+          "datasource": "Loki",
+          "expr": "sum(count_over_time({container_label_com_docker_swarm_service_name=\"$service\"} | json | detected_level=\"debug\" [1h]))"
+        }
+      ],
+      "gridPos": { "x": 12, "y": 8, "w": 4, "h": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Unknown Logs Count",
+      "targets": [
+        {
+          "datasource": "Loki",
+          "expr": "sum(count_over_time({container_label_com_docker_swarm_service_name=\"$service\"} | json | detected_level=\"unknown\" [1h]))"
+        }
+      ],
+      "gridPos": { "x": 16, "y": 8, "w": 4, "h": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "grey"
+          }
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "All Logs Count",
+      "targets": [
+        {
+          "datasource": "Loki",
+          "expr": "sum(count_over_time({container_label_com_docker_swarm_service_name=\"$service\"} [1h]))"
+        }
+      ],
+      "gridPos": { "x": 24, "y": 8, "w": 4, "h": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          }
+        }
+      }
+    }
+  ],
+  "overwrite": true
+}

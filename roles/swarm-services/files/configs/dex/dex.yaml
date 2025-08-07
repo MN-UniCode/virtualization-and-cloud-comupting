@@ -1,0 +1,60 @@
+issuer: https://auth.vcc.internal
+
+# TASK 25. Make it use the database you created
+storage:
+  type: postgres
+  config:
+    host: db
+    port: 5432
+    database: dex_db
+    user: dex
+    password: ${DB_PASSWORD}
+    ssl: 
+      mode: disable
+
+web:
+  http: 0.0.0.0:5556
+
+# TASK 27. Enable metrics 
+telemetry:
+  http: 0.0.0.0:5558
+
+oauth2:
+  grantTypes:
+    - authorization_code
+  skipApprovalScreen: true
+  passwordConnector: local
+  alwaysShowLoginScreen: false
+
+# TASK 28. Create clients for Forgejo and Grafana
+staticClients:
+  # Forgejo OAuth client
+  - id: forgejo
+    redirectURIs:
+      - 'https://git.vcc.internal/user/oauth2/Dex/callback'
+    name: 'forgejo'
+    secretEnv: FORGEJO_OAUTH_SECRET
+    
+  # Grafana OAuth client
+  - id: grafana
+    redirectURIs:
+      - 'https://mon.vcc.internal/login/generic_oauth'
+    name: 'grafana'
+    secretEnv: GRAFANA_OAUTH_SECRET
+
+  # pgAdmin OAuth client
+  - id: pgadmin
+    redirectURIs:
+      - "https://pgadmin.vcc.internal/oauth2/authorize"
+    name: 'pgadmin'
+    secretEnv: PGADMIN_OAUTH_SECRET
+
+enablePasswordDB: true
+
+# TASK 26. Set its administrative credentials
+staticPasswords:
+- email: "dex@gmail.com"
+  # bcrypt hash of the string "your_password": $(echo your_password | htpasswd -BinC 10 admin | cut -d: -f2)
+  hash: "$2y$10$itz.6t1FldyhMdPAzeiHK.SfD.kBS5BbaABCEs0bWgrAM0/OvMD86"
+  username: "user"
+  userID: "08a8684b-db88-4b73-90a9-3cd1661f5466"

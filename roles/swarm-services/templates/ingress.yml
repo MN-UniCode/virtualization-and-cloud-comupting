@@ -1,0 +1,63 @@
+networks:
+  traefik_net:
+
+services:
+
+  #
+  # TASK 20. Configure traefik for service discovery via Docker Swarm labels
+  #
+  traefik:
+    # TASK 18. Deploy public.ecr.aws/docker/library/traefik:v3.2.2
+    image: public.ecr.aws/docker/library/traefik:v3.2.2
+    networks:
+      traefik_net:
+    
+    command:
+      # TASK 23. Enable access logging and prometheus metrics 
+      - --accesslog=true
+      - --accesslog.format=json
+      - --metrics.prometheus=true
+      - --entryPoints.metrics.address=:8082
+      - --metrics.prometheus.entryPoint=metrics
+
+      - --log.level=DEBUG
+      - --log.format=json
+
+      # - --api.insecure=true # enable the dashboard
+
+      # TASK 22. Redirect HTTP requests to HTTPS
+      - --entryPoints.web.address=:80 # 'web' entrypoint listen on port 80
+      - --entryPoints.websecure.address=:443 # 'websecure' entrypoint listen on port 443
+      - --entryPoints.web.http.redirections.entryPoint.to=websecure  # Redirect HTTP --> HTTPS
+      - --entryPoints.web.http.redirections.entryPoint.scheme=https  # Enforce HTTPS
+      
+      - --providers.swarm.endpoint=unix:///var/run/docker.sock # tell traefik that it has to use API-based SD for Docker
+      - --providers.swarm.exposedByDefault=false
+
+      # TLS certificate
+      - --providers.file.directory=/etc/traefik/dynamic/
+      # TASK 21. Configure the TLS endpoint on port 443 to use the self signed certificate we generated previously
+      - --entryPoints.websecure.http.tls=true
+
+    # TASK 19. Expose it on ports 80 and 443
+    ports:
+      - 80:80
+      - 443:443
+      # - 8080:8080
+
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        # TASK 53. Ensure that prometheus scrapes traefik
+        - prometheus.io/scrape-me=yes-please
+        - prometheus.io/metrics-path=/metrics
+        - prometheus.io/metrics-port=8082
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /data/configs/traefik/traefik_dynamic.yml:/etc/traefik/dynamic/traefik_dynamic.yml
+      - /data/ssl/certs/{{ domain_name }}.crt:/etc/ssl/certs/{{ domain_name }}.crt
+      - /data/ssl/private/{{ domain_name }}.key:/etc/ssl/private/{{ domain_name }}.key
+      - /data/ssl/private/ca.pem:/usr/local/share/ca-certificates/ca.pem

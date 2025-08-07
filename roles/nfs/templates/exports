@@ -1,0 +1,2 @@
+# {{ ansible_managed }}
+{{ nfs_dir }} {% for node in ansible_play_hosts_all[1:] %}{{ hostvars[node]['ansible_default_ipv4']['address'] }}(rw,no_root_squash,no_subtree_check) {% endfor %}

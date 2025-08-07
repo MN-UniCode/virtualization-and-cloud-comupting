@@ -1,0 +1,42 @@
+services:
+
+  traefik:
+    networks:
+      traefik_net:
+        aliases:
+          # if we had put this alias on the service it would mean
+          #   inside of the cluster we should go to auth.vcc.internal:5556
+          #   outside of the cluster we should go to auth.vcc.internal:80
+          # instead, here everything is consistent both east-west and north-south!
+          - auth.vcc.internal
+
+  dex:
+    # TASK 24. Deploy ghcr.io/dexidp/dex:v2.41.1-alpine
+    image: registry.vcc.internal:5000/dex:latest
+    environment:
+      DB_PASSWORD: "{{ dex }}"
+      FORGEJO_OAUTH_SECRET: "{{ forgejo_oauth }}"
+      GRAFANA_OAUTH_SECRET: "{{ grafana_oauth }}"
+      PGADMIN_OAUTH_SECRET: "{{ pgadmin_oauth }}"
+    networks:
+      traefik_net:
+      db_net:
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=vcc_traefik_net"
+        - "traefik.http.routers.dex.rule=Host(`auth.vcc.internal`)"
+        - "traefik.http.routers.dex.service=dex"
+        - "traefik.http.routers.dex.entrypoints=web,websecure"
+        - "traefik.http.routers.dex.tls=true"
+        - "traefik.http.services.dex.loadbalancer.server.port=5556"      
+        # TASK 57. Ensure that prometheus scrapes dex
+        - "prometheus.io/scrape-me=yes-please"
+        - "prometheus.io/metrics-path=/metrics"
+        - "prometheus.io/metrics-port=5558"
+      placement:
+        constraints:
+          - node.role == worker
+    volumes:
+      - /data/dex:/data
+      - /data/configs/dex/dex.yaml:/etc/dex/config.docker.yaml:ro

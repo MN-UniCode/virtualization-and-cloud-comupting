@@ -1,0 +1,129 @@
+# write all swarm services of your exam here please
+networks:
+  db_net:
+
+services:
+  # TASK 13. Deploy a "postgres:17" database
+  db:
+    image: postgres:17
+    hostname: db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "{{ postgres }}"
+      DEX_USER: dex
+      DEX_DB: dex_db
+      DEX_PASSWORD: "{{ dex }}"
+      FORGEJO_USER: forgejo
+      FORGEJO_DB: forgejo_db
+      FORGEJO_PASSWORD: "{{ forgejo }}"
+      GRAFANA_USER: grafana
+      GRAFANA_DB: grafana_db
+      GRAFANA_PASSWORD: "{{ grafana }}"
+    networks:
+      db_net:
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+    volumes:
+      # TASK 15. Ensure that database data is persistent across restarts and changes in nodes
+      - /data/db:/var/lib/postgresql/data/
+      - /data/configs/db/init.sh:/docker-entrypoint-initdb.d/init.sh
+
+  forgejo:
+    image: registry.vcc.internal:5000/forgejo:latest
+    restart: always
+    environment:
+      DB_HOST: "db"
+      DB_PORT: "5432"
+      DB_USER: "forgejo"
+      DB_PASSWORD: "{{ forgejo }}"
+      DB_NAME: "forgejo_db"
+      ADMIN_EMAIL: "admin@gmail.com"
+      ADMIN_USER: "myAdmin"
+      ADMIN_PASS: "{{ forgejo_admin }}"
+      FORGEJO_HOST: "https://git.vcc.internal"
+      FORGEJO_PORT: "3200"
+      AUTH_SERVER: "https://auth.vcc.internal/auth"
+      AUTH_PORT: "443"
+      OAUTH2_SECRET: "{{ forgejo_oauth }}"
+    deploy:
+      labels:
+        # TASK 33. Expose forgejo via traefik on https://git.vcc.internal
+        - "traefik.enable=true"
+        - "traefik.docker.network=vcc_traefik_net"
+        - "traefik.http.routers.git.rule=Host(`git.vcc.internal`)"
+        - "traefik.http.routers.git.service=forgejo"
+        - "traefik.http.routers.git.entrypoints=web,websecure"
+        - "traefik.http.routers.git.tls=true"
+        - "traefik.http.services.forgejo.loadbalancer.server.port=3200"
+        # TASK 56. Ensure that prometheus scrapes forgejo    
+        - "prometheus.io/scrape-me=yes-please"
+        - "prometheus.io/metrics-path=/metrics"
+        - "prometheus.io/metrics-port=3200"
+      placement:
+        constraints:
+          - node.role == worker
+    volumes:
+      # TASK 32. Ensure that the data and sessions are persisted across reboots and movements between nodes
+      - /data/forgejo:/data/gitea
+      - /data/configs/forgejo/forgejo.ini:/data/gitea/conf/app.ini
+      - /data/ssl/private/ca.pem:/usr/local/share/ca-certificates/ca.crt
+      - /data/ssl/certs/{{ domain_name }}.crt:/usr/local/share/ca-certificates/{{ domain_name }}.crt
+    networks:
+      db_net: 
+      traefik_net:
+        aliases:
+          - git.vcc.internal
+
+  grafana:
+    image: registry.vcc.internal:5000/grafana:latest
+    environment:
+      DB_HOST: "db"
+      DB_PORT: "5432"
+      DB_USER: "grafana"
+      DB_PASSWORD: "{{ grafana }}"
+      DB_NAME: "grafana_db"
+      AUTH_SERVER: "https://auth.vcc.internal/auth"
+      AUTH_PORT: "443"
+      ADMIN_PASSWORD: "{{ grafana_admin }}"
+      OAUTH2_SECRET: "{{ grafana_oauth }}"
+    networks:
+      loki_net:
+      traefik_net:
+        aliases:
+          - mon.vcc.internal
+      db_net:
+    deploy:
+      labels:
+        # TASK 42. Expose grafana via traefik at https://mon.vcc.internal
+        - "traefik.enable=true"
+        - "traefik.docker.network=vcc_traefik_net"
+        - "traefik.http.routers.grafana.rule=Host(`mon.vcc.internal`)"
+        - "traefik.http.routers.grafana.service=grafana"
+        - "traefik.http.routers.grafana.entrypoints=web,websecure"
+        - "traefik.http.routers.grafana.tls=true"
+        - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+        # TASK 55. Ensure that prometheus scrapes grafana
+        - "prometheus.io/scrape-me=yes-please"
+        - "prometheus.io/metrics-path=/metrics"
+        - "prometheus.io/metrics-port=3000"
+      placement:
+        constraints:
+          - node.role == worker
+    volumes:
+      # TASK 41. Ensure that Grafana data is persisted
+      - /data/grafana:/var/lib/grafana
+      - /data/configs/grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
+      # TASK 60. Using provisioning, create a Grafana dashboard with metrics about the swarm nodes
+      - /data/configs/grafana/node_metrics.json:/var/lib/grafana/dashboards/monitoring/node_metrics.json
+      # TASK 65. Using provisioning, create a Grafana dashboard for the monitoring stack
+      - /data/configs/grafana/monitoring_stack.json:/var/lib/grafana/dashboards/monitoring/monitoring_stack.json
+      # TASK 66. Using provisioning, create a Grafana dashboard for the logging stack
+      - /data/configs/grafana/logging_stack_services.json:/var/lib/grafana/dashboards/logging/logging_stack_services.json
+      - /data/configs/grafana/logging_stack_containers.json:/var/lib/grafana/dashboards/logging/logging_stack_containers.json
+      # TASK 59. Using provisioning, create a Grafana dashboard with metrics and logs from traefik
+      - /data/configs/grafana/traefik.json:/var/lib/grafana/dashboards/traefik/traefik.json
+      - /data/ssl/private/ca.pem:/usr/local/share/ca-certificates/ca.crt
+      - /data/ssl/certs/{{ domain_name }}.crt:/usr/local/share/ca-certificates/{{ domain_name }}.crt

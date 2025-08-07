@@ -1,0 +1,73 @@
+# TASK 31. Customize the forgejo.ini configuration
+[DEFAULT]
+APP_NAME = VCC Git
+RUN_MODE = prod
+
+[server]
+PROTOCOL = http
+ROOT_URL = https://git.vcc.internal/
+DOMAIN = git.vcc.internal
+HTTP_PORT = 3200
+
+# SSH configuration
+SSH_PORT = 2222
+
+# LFS (Large File System) enable
+LFS_START_SERVER = true
+LFS_JWT_SECRET = {{ lfs_jvt }}
+
+# Disable some networking functions
+OFFLINE_MODE = true
+
+[indexer]
+REPO_INDEXER_ENABLED = true
+
+[security]
+INSTALL_LOCK = true
+
+# Session security
+SECRET_KEY = {{ secret_key }}
+COOKIE_USERNAME = vcc_git_username
+COOKIE_REMEMBER_NAME = vcc_git_remember_me
+
+# Inter-service communication token
+INTERNAL_TOKEN = {{ internal_token }}
+
+[oauth2_client]
+USERNAME=email
+ENABLE_AUTO_REGISTRATION=true
+
+# TASK 31a. Use the database we created
+[database]
+DB_TYPE = postgres
+HOST = db:5432
+NAME = forgejo_db
+USER = forgejo
+PASSWD = {{ forgejo }}
+SSL_MODE = disable
+
+[service]
+DISABLE_REGISTRATION = true
+ENABLE_BASIC_AUTHENTICATION = false
+ENABLE_INTERNAL_SIGNIN = false
+
+[session]
+# Enable session
+PROVIDER = db
+
+[queue]
+TYPE = level
+DATADIR = queues/common
+LENGTH = 1000
+BATCH_LENGTH = 10
+MAX_WORKERS = 2
+
+[log]
+# Enable logs
+MODE = console, file
+LEVEL = info
+ROOT_PATH = /data/gitea/log
+
+[metrics]
+# TASK 31b. Enable metrics
+ENABLED = true

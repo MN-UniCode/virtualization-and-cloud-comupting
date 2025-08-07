@@ -1,0 +1,39 @@
+title: "VCC Dashboard"
+
+services:
+  - name: "Monitoring"
+    icon: "fas fa-chart-line"
+    items:
+      - name: "Grafana"
+        logo: "https://upload.wikimedia.org/wikipedia/commons/3/3b/Grafana_icon.svg"
+        url: "https://mon.vcc.internal"
+        target: "_blank"
+
+      - name: "Prometheus"
+        logo: "https://upload.wikimedia.org/wikipedia/commons/3/38/Prometheus_software_logo.svg"
+        url: "https://prom.vcc.internal"
+        target: "_blank"
+
+  - name: "Database"
+    icon: "fas fa-database"
+    items:
+      - name: "pgAdmin"
+        logo: "https://upload.wikimedia.org/wikipedia/commons/2/29/Postgresql_elephant.svg"
+        url: "https://pgadmin.vcc.internal"
+        target: "_blank"
+
+  - name: "DevOps"
+    icon: "fas fa-code-branch"
+    items:
+      - name: "Forgejo"
+        logo: "https://upload.wikimedia.org/wikipedia/commons/0/05/Forgejo_logo.svg"
+        url: "https://git.vcc.internal"
+        target: "_blank"
+    
+  - name: "Containers"
+    icon: "fab fa-docker"
+    items:
+      - name: "Portainer"
+        logo: "https://docs.portainer.io/~gitbook/image?url=https%3A%2F%2F2267698900-files.gitbook.io%2F%7E%2Ffiles%2Fv0%2Fb%2Fgitbook-x-prod.appspot.com%2Fo%2Fcollections%252F-MgDKId4pkNqVVA37TrJ%252Ficon%252FVCxAgtVztlM4uFHBGbx2%252Fportainer-logo.png%3Falt%3Dmedia%26token%3Dc2c52810-a01e-4b65-883c-d999b5f9489a&width=32&dpr=2&quality=100&sign=f16067f7&sv=2"
+        url: "https://portainer.vcc.internal"
+        target: "_blank"
